@@ -327,6 +327,16 @@ else()
     find_package(ZLIB REQUIRED)
 endif()
 
+# Haiku keeps the socket API (socket, getaddrinfo, getifaddrs, ...) in
+# libnetwork, not in libroot: every target here (and the vendored mosquitto)
+# needs it. Its BSD extensions (timegm, htole32 & co. in <endian.h>,
+# <ifaddrs.h>) are declared only with _DEFAULT_SOURCE, which the strict
+# -std=c++17 (CMAKE_CXX_EXTENSIONS OFF) does not imply.
+if(HAIKU)
+    link_libraries(network)
+    add_compile_definitions(_DEFAULT_SOURCE)
+endif()
+
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/VendorMosquitto.cmake")
 obn_vendor_mosquitto_setup()
 
@@ -341,6 +351,11 @@ elseif(APPLE AND OBN_MACOS_STATIC_DEPS)
     include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/VendorCurl.cmake")
     obn_vendor_curl_setup()
     target_link_libraries(obn_curl_iface INTERFACE obn_vendor_curl_iface)
+elseif(HAIKU)
+    # Haiku ships libcurl as a system library; its pkg-config file lists
+    # private requirements a cross sysroot may not carry .pc files for.
+    find_package(CURL REQUIRED)
+    target_link_libraries(obn_curl_iface INTERFACE CURL::libcurl)
 else()
     pkg_check_modules(CURL REQUIRED IMPORTED_TARGET libcurl)
     target_link_libraries(obn_curl_iface INTERFACE PkgConfig::CURL)
@@ -775,7 +790,7 @@ if(OBN_BUILD_TESTS)
     add_executable(probe_plugin tests/probe_plugin.cpp)
     target_include_directories(probe_plugin PRIVATE include)
     if(NOT WIN32)
-        target_link_libraries(probe_plugin PRIVATE dl)
+        target_link_libraries(probe_plugin PRIVATE ${CMAKE_DL_LIBS})
     endif()
     add_test(NAME plugin_symbols
         COMMAND probe_plugin $<TARGET_FILE:bambu_networking>)

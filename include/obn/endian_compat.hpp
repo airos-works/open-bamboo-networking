@@ -6,6 +6,11 @@
 #if defined(__linux__)
 #  include <endian.h>
 
+#elif defined(__HAIKU__)
+// The BSD macros of Haiku's <endian.h> need _DEFAULT_SOURCE, which
+// CMakeLists.txt defines on Haiku (strict -std=c++17 hides them otherwise).
+#  include <endian.h>
+
 #elif defined(__APPLE__)
 #  include <machine/endian.h>
 #  include <libkern/OSByteOrder.h>

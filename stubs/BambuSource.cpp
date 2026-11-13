@@ -123,6 +123,9 @@
 #  if defined(__APPLE__)
 #    include <mach-o/dyld.h>
 #  endif
+#  if defined(__HAIKU__)
+#    include <image.h>
+#  endif
 #endif
 
 #include "obn/config.hpp"
@@ -934,6 +937,19 @@ static GetUrlFn resolve_plugin_url_fn(const char* name)
     PluginLookup look{name, nullptr};
     dl_iterate_phdr(visit_loaded_plugin, &look);
     if (look.fn) return look.fn;
+#endif
+
+#if defined(__HAIKU__)
+    // The kernel lists the team's images; the plugin is the one whose path
+    // names bambu_networking, and its symbols are read without dlopen.
+    image_info info;
+    int32 cookie = 0;
+    while (get_next_image_info(B_CURRENT_TEAM, &cookie, &info) == B_OK) {
+        if (!std::strstr(info.name, "bambu_networking")) continue;
+        void* addr = nullptr;
+        if (get_image_symbol(info.id, name, B_SYMBOL_TYPE_TEXT, &addr) == B_OK && addr)
+            return reinterpret_cast<GetUrlFn>(addr);
+    }
 #endif
 
 #if defined(__APPLE__)

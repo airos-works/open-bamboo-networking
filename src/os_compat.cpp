@@ -20,7 +20,11 @@
 #  include <pthread.h>
 #  include <strings.h>
 #  include <sys/socket.h>
-#  include <sys/syscall.h>
+#  if defined(__HAIKU__)
+#    include <OS.h>
+#  else
+#    include <sys/syscall.h>
+#  endif
 #  include <sys/types.h>
 #  include <unistd.h>
 #endif
@@ -33,6 +37,8 @@ long thread_id()
     return static_cast<long>(::GetCurrentThreadId());
 #elif defined(__linux__)
     return static_cast<long>(::syscall(SYS_gettid));
+#elif defined(__HAIKU__)
+    return static_cast<long>(::find_thread(nullptr));
 #else
     // BSDs / macOS: pthread_self() returns an opaque type. We just want
     // a stable per-thread number for log lines, so cast the address.
