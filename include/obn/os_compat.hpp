@@ -70,6 +70,15 @@ constexpr socket_t kInvalidSocket = static_cast<socket_t>(-1);
 // threads is safe.
 void winsock_init_once();
 
+// A write to a socket whose peer is gone raises SIGPIPE, and the default
+// disposition kills the whole process -- here, the slicer that loaded us.
+// OpenSSL writes through write(2) (no per-write MSG_NOSIGNAL), so every TLS
+// path (tls_dial and the vendored mosquitto) calls this before its first
+// connection: SIGPIPE is ignored, only when the host has not installed a
+// handler of its own (never override the application's choice). No-op on
+// Windows.
+void ignore_sigpipe_if_default();
+
 // True if `s` refers to a real, currently-open socket. Use to test the
 // result of socket()/accept(): on POSIX `s >= 0`, on Windows `s !=
 // INVALID_SOCKET`.

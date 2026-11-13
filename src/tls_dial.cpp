@@ -54,31 +54,11 @@ void set_error(const char* msg)
     }
 }
 
-// A write to a socket whose peer is gone raises SIGPIPE, and the default
-// disposition kills the whole process -- here, the slicer that loaded us.
-// OpenSSL has no per-write MSG_NOSIGNAL equivalent, so neutralise the
-// signal instead, and only when the host has not installed a handler of
-// its own (never override the application's choice).
-void ignore_sigpipe_if_default()
-{
-#if !defined(_WIN32)
-    struct sigaction old{};
-    if (::sigaction(SIGPIPE, nullptr, &old) != 0) return;
-    if (old.sa_handler != SIG_DFL) return;
-    struct sigaction act{};
-    act.sa_handler = SIG_IGN;
-    // Unqualified on purpose: Apple's SDK defines sigemptyset as a macro,
-    // which a ::-qualified call cannot name.
-    sigemptyset(&act.sa_mask);
-    ::sigaction(SIGPIPE, &act, nullptr);
-#endif
-}
-
 void init_once()
 {
     std::call_once(g_init_flag, []() {
         obn::os::winsock_init_once();
-        ignore_sigpipe_if_default();
+        obn::os::ignore_sigpipe_if_default();
 
         SSL_library_init();
         OpenSSL_add_all_algorithms();

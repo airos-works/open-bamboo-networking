@@ -24,6 +24,7 @@
 #endif
 
 #include "obn/log.hpp"
+#include "obn/os_compat.hpp"
 #include "obn/lan_tls.hpp"
 #include "obn/lan_tls_env.hpp"
 
@@ -45,6 +46,10 @@ void final_cleanup()
 void global_init()
 {
     std::call_once(g_init_once, []() {
+        // mosquitto's TLS writes go through OpenSSL's socket BIO (write(2),
+        // no MSG_NOSIGNAL): a broker that closes first must not kill the
+        // slicer (seen on Haiku when a LAN session is torn down).
+        obn::os::ignore_sigpipe_if_default();
         ::mosquitto_lib_init();
         std::atexit(&final_cleanup);
     });

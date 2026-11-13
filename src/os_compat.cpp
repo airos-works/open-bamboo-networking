@@ -16,6 +16,7 @@
 #  include <windows.h>
 #else
 #  include <fcntl.h>
+#  include <csignal>
 #  include <poll.h>
 #  include <pthread.h>
 #  include <strings.h>
@@ -104,6 +105,21 @@ void winsock_init_once()
         // race with a still-running socket thread would be worse than
         // letting the OS reclaim the Winsock state on exit.
     });
+#endif
+}
+
+void ignore_sigpipe_if_default()
+{
+#if !defined(_WIN32)
+    struct sigaction old{};
+    if (::sigaction(SIGPIPE, nullptr, &old) != 0) return;
+    if (old.sa_handler != SIG_DFL) return;
+    struct sigaction act{};
+    act.sa_handler = SIG_IGN;
+    // Unqualified on purpose: Apple's SDK defines sigemptyset as a macro,
+    // which a ::-qualified call cannot name.
+    sigemptyset(&act.sa_mask);
+    ::sigaction(SIGPIPE, &act, nullptr);
 #endif
 }
 
