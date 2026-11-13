@@ -303,8 +303,12 @@ if(MSVC)
     )
 else()
     # Bambu Studio's Linux build is compiled against libstdc++ new C++11 ABI;
-    # match it so std::string layout lines up across the boundary.
-    add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=1)
+    # match it so std::string layout lines up across the boundary. Haiku's
+    # GCC defaults to the old (pre-C++11) std::string, and so does the slicer
+    # built with it: keep the toolchain's default there.
+    if(NOT HAIKU)
+        add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=1)
+    endif()
     add_compile_options(-Wall -Wextra -Wno-unused-parameter -Wno-unused-variable)
     # Clang/AppleClang always; GNU only since GCC 8 (older toolchains reject the flag).
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang" OR
