@@ -86,6 +86,25 @@ message(STATUS "obn: ABI_VERSION=${OBN_ABI_VERSION_HEX} (from OBN_VERSION=${OBN_
 
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/packaging/obn.conf.in"
      OBN_CONF_DEFAULT_TEMPLATE)
+# A distribution's own defaults for the obn.conf the plugin writes on its
+# first start: a list of key=value items, each replacing the value of a key
+# the template already has (the comments stay), e.g.
+#   -DOBN_CONF_DEFAULTS="cloud_print=lan_only;log_stderr=0"
+set(OBN_CONF_DEFAULTS "" CACHE STRING
+    "key=value list overriding defaults of packaging/obn.conf.in")
+foreach(_obn_kv IN LISTS OBN_CONF_DEFAULTS)
+    if(NOT _obn_kv MATCHES "^([a-z0-9_]+)=(.*)$")
+        message(FATAL_ERROR "OBN_CONF_DEFAULTS: '${_obn_kv}' is not key=value")
+    endif()
+    set(_obn_key "${CMAKE_MATCH_1}")
+    set(_obn_value "${CMAKE_MATCH_2}")
+    if(NOT OBN_CONF_DEFAULT_TEMPLATE MATCHES "\n${_obn_key} =[^\n]*")
+        message(FATAL_ERROR "OBN_CONF_DEFAULTS: obn.conf.in has no key '${_obn_key}'")
+    endif()
+    string(REGEX REPLACE "\n${_obn_key} =[^\n]*" "\n${_obn_key} = ${_obn_value}"
+           OBN_CONF_DEFAULT_TEMPLATE "${OBN_CONF_DEFAULT_TEMPLATE}")
+    message(STATUS "obn: obn.conf default ${_obn_key} = ${_obn_value}")
+endforeach()
 # The template is embedded into obn_conf_default.h at configure time, so CMake
 # has to know it is an input: without this an edit to obn.conf.in keeps
 # shipping the previously generated default config.
