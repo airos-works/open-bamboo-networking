@@ -224,6 +224,18 @@ cmake --install build --config Release
 
 `cmake --install` runs the automated install. For the manual steps (copy paths, conf keys), see [Manual installation](#manual-installation) below.
 
+### Haiku (air/OS)
+
+The air/OS fork (airos-works/open-bamboo-networking, branch `airos`) builds
+for Haiku x86_64 and arm64 with the cross SDK: air/OS's Bambu Studio port
+does it with `tools/haiku/build-plugin.sh` (airos-works/BambuStudio) and
+ships the plugin in its package. It is the Linux build with Haiku's system
+OpenSSL, libcurl and zlib (CMake finds libcurl with `FindCURL` on Haiku) and
+libnetwork; `_DEFAULT_SOURCE` is defined for Haiku's BSD extensions, and the
+toolchain's own libstdc++ string ABI is kept (Haiku's GCC defaults to the
+old one, as does a slicer built with it). `-DOBN_CONF_DEFAULTS="key=value;..."`
+sets a distribution's defaults for the `obn.conf` written at first start.
+
 ## Manual installation
 
 First, copy the plugin binaries themselves: `*.so` on Linux and `*.dll` on Windows.
